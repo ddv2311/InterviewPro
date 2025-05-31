@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 import { vapi } from "@/lib/vapi.sdk";
-import { interviewer } from "@/constants";
+import { generator, interviewer } from "@/constants";
 import { createFeedback } from "@/lib/actions/general.action";
 
 enum CallStatus {
@@ -41,6 +41,7 @@ const Agent = ({
     };
 
     const onCallEnd = () => {
+      console.log("Call ended");
       setCallStatus(CallStatus.FINISHED);
     };
 
@@ -61,8 +62,10 @@ const Agent = ({
       setIsSpeaking(false);
     };
 
-    const onError = (error: Error) => {
-      console.log("Error:", error);
+    const onError = (error: any) => {
+      console.error("VAPI Error:", error);
+      console.error("Error details:", JSON.stringify(error, null, 2));
+      setCallStatus(CallStatus.FINISHED);
     };
 
     vapi.on("call-start", onCallStart);
@@ -117,26 +120,46 @@ const Agent = ({
   const handleCall = async () => {
     setCallStatus(CallStatus.CONNECTING);
 
-    if (type === "generate") {
-      await vapi.start(process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID!, {
-        variableValues: {
-          username: userName,
-          userid: userId,
-        },
-      });
-    } else {
-      let formattedQuestions = "";
-      if (questions) {
-        formattedQuestions = questions
-          .map((question) => `- ${question}`)
-          .join("\n");
-      }
+    // Check environment variables
+    if (!process.env.NEXT_PUBLIC_VAPI_WEB_TOKEN) {
+      console.error("NEXT_PUBLIC_VAPI_WEB_TOKEN is not set");
+      setCallStatus(CallStatus.INACTIVE);
+      return;
+    }
 
-      await vapi.start(interviewer, {
-        variableValues: {
-          questions: formattedQuestions,
-        },
-      });
+    if (type === "generate" && !process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID) {
+      console.error("NEXT_PUBLIC_VAPI_WORKFLOW_ID is not set");
+      setCallStatus(CallStatus.INACTIVE);
+      return;
+    }
+
+    try {
+      if (type === "generate") {
+        console.log("Starting generate call with workflow ID:", process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID);
+        await vapi.start(process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID!, {
+          variableValues: {
+            username: userName,
+            userid: userId,
+          },
+        });
+      } else {
+        let formattedQuestions = "";
+        if (questions) {
+          formattedQuestions = questions
+            .map((question) => `- ${question}`)
+            .join("\n");
+        }
+
+        console.log("Starting interview call with interviewer config");
+        await vapi.start(interviewer, {
+          variableValues: {
+            questions: formattedQuestions,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Error starting VAPI call:", error);
+      setCallStatus(CallStatus.INACTIVE);
     }
   };
 

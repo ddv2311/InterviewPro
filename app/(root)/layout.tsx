@@ -4,10 +4,14 @@ import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 
 import { isAuthenticated } from "@/lib/actions/auth.action";
+import LogoutButton from "@/components/LogoutButton";
 
 const Layout = async ({ children }: { children: ReactNode }) => {
   const isUserAuthenticated = await isAuthenticated();
-  if (!isUserAuthenticated) redirect("/sign-in");
+  
+  if (!isUserAuthenticated) {
+    redirect("/sign-in");
+  }
 
   return (
     <div className="root-layout">
@@ -16,6 +20,8 @@ const Layout = async ({ children }: { children: ReactNode }) => {
           <Image src="/logo.svg" alt="MockMate Logo" width={38} height={32} />
           <h2 className="text-primary-100">InterviewPro</h2>
         </Link>
+        
+        <LogoutButton />
       </nav>
 
       {children}

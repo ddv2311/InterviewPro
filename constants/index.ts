@@ -439,5 +439,5 @@ export const generator=
           "prompt": "user said yes or okay or thankyou or welcome"
         }
       }
-    ]
-  };
+  ],
+};

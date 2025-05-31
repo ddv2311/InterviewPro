@@ -111,16 +111,17 @@ export async function getCurrentUser(): Promise<User | null> {
       .collection("users")
       .doc(decodedClaims.uid)
       .get();
-    if (!userRecord.exists) return null;
+    
+    if (!userRecord.exists) {
+      return null;
+    }
 
     return {
       ...userRecord.data(),
       id: userRecord.id,
     } as User;
   } catch (error) {
-    console.log(error);
-
-    // Invalid or expired session
+    console.log("Session verification failed:", error);
     return null;
   }
 }
@@ -130,4 +131,3 @@ export async function isAuthenticated() {
   const user = await getCurrentUser();
   return !!user;
 }
-    
